@@ -1,0 +1,651 @@
+<html>
+
+<head>
+    <title>adding models</title>
+</head>
+
+<body>
+    <canvas width="700" height="700" id="canvas"> </canvas>
+    <script src="three.js"> </script>
+    <script script type="module">
+        //import * as THREE from "three.js";
+        //import * as THREE from '../build/three.module.js';
+        import { GLTFLoader } from "./three/examples/jsm/loaders/GLTFLoader.js";
+        import { FBXLoader } from "./three/examples/jsm/loaders/FBXLoader.js";
+        var mycanvas = document.getElementById("canvas");
+        var gl = mycanvas.getContext("experimental-webgl");
+        var object = new THREE.Object3D();
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0000ff);
+
+        const camera = new THREE.PerspectiveCamera(75, 700 / 700, 0.1, 10000);
+        //camera.position.set(700, 250, 3100);
+        camera.position.set(0, 0, 0);
+        scene.add(camera);
+
+        const renderer = new THREE.WebGLRenderer({ canvas: mycanvas, antialias: true }); //anti aliasing was for the texture but that doesn't work
+        renderer.setSize(700, 700);
+
+        var light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(500, 500, 500);
+        scene.add(light);
+        var light2 = new THREE.DirectionalLight(0xffffff, 1);
+        light2.position.set(-500, 500, 500);
+        scene.add(light2);
+
+        /*var pointlight = new THREE.PointLight(0xffffff, 2, 5000);
+        pointlight.position.set(0, 1000, 0);
+        scene.add(pointlight);*/
+
+        document.body.appendChild(renderer.domElement);
+
+        //floor dimensions
+        const width = 7000; //x value 
+        //const height = 200; //y value is zero since the plane is 2d
+        const depth = 7000; //z value
+        /*
+                const persondepth = 15; //z value of person
+        
+                const legwidth = 15; //x value
+                const legheight = 50; //y value
+        
+                const armwidth = 13;
+                const armheight = 45;
+        
+                const bodywidth = 38;
+                const bodyheight = 60;
+        
+                const headwidth = 26;
+                const headheight = 26;*/
+
+        const PlaneGeometry = new THREE.PlaneGeometry(width, depth);
+        const PlaneMaterial = new THREE.MeshPhongMaterial({ color: 0x17a65a, wireframe: false });
+        const floorPlane = new THREE.Mesh(PlaneGeometry, PlaneMaterial);
+        floorPlane.receiveShadow = true;
+        floorPlane.rotation.x -= Math.PI / 2;
+        floorPlane.position.set(0, 0, 0);
+        scene.add(floorPlane);
+
+        //-------------------------------------------------------------MAP---------------------------------------------------------------------
+        // const tickPlaneGeometry = new THREE.PlaneGeometry(100, 50);
+        // const tick2PlaneGeometry = new THREE.PlaneGeometry(170, 50);
+        // const tickPlaneMaterial = new THREE.MeshPhongMaterial({ color: 0x000000, wireframe: false });
+        // const tickPlane1 = new THREE.Mesh(tickPlaneGeometry, tickPlaneMaterial);
+        // const tickPlane2 = new THREE.Mesh(tick2PlaneGeometry, tickPlaneMaterial);
+        // tickPlane1.rotation.z -= 0.75;
+        // tickPlane1.position.set(313, 150, -1500);
+        // scene.add(tickPlane1);
+        // tickPlane2.rotation.z += 0.75;
+        // tickPlane2.position.set(375 + 10 - 5, 175, -1500);
+        // scene.add(tickPlane2);
+
+        const wallheight = 600;
+        const walldepth = 50;
+
+        //height 10cm width 11.5	
+
+        //all the number are relative to the map
+        const wallgeo1cm = new THREE.BoxGeometry(700, wallheight, walldepth);
+        const wallgeo4cm = new THREE.BoxGeometry(2450, wallheight, walldepth);
+        const wallgeo10cm = new THREE.BoxGeometry(7000, wallheight, walldepth);
+        const wallgeo11$ = new THREE.BoxGeometry(6950, wallheight, walldepth);
+        const wallgeo8$ = new THREE.BoxGeometry(6250, wallheight, walldepth);
+        const wallgeo7cm = new THREE.BoxGeometry(3750, wallheight, walldepth);
+        const wallgeo2cm = new THREE.BoxGeometry(1220, wallheight, walldepth);
+        const wallgeo5$ = new THREE.BoxGeometry(4500, wallheight, walldepth);
+        const wallgeo3cm = new THREE.BoxGeometry(1960, wallheight, walldepth);
+        const wallgeo0$ = new THREE.BoxGeometry(550, wallheight, walldepth);
+        const wallgeo5cm = new THREE.BoxGeometry(2500, wallheight, walldepth);
+        const wallgeo2$ = new THREE.BoxGeometry(1520, wallheight, walldepth);
+        const wallgeo1$ = new THREE.BoxGeometry(1000, wallheight, walldepth);
+        // const wallgeo14=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo15=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo16=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo17=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo18=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo19=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo20=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo21=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo22=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo23=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo24=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo25=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo26=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo27=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo28=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo29=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo30=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo31=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo32=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo33=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo34=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo35=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo36=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo37=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo38=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo39=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo40=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo41=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo42=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo43=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo44=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo45=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo46=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo47=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo48=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo49=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo50=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo51=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo52=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo53=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo54=new THREE.BoxGeometry(,wallheight,walldepth);
+        // const wallgeo55=new THREE.BoxGeometry(,wallheight,walldepth);
+
+        const wallMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFF67 });
+        var wall1 = new THREE.Mesh(wallgeo1$, wallMaterial);
+        wall1.castShadow = true;
+        var wall2 = new THREE.Mesh(wallgeo4cm, wallMaterial);
+        var wall3 = new THREE.Mesh(wallgeo10cm, wallMaterial);
+        var wall4 = new THREE.Mesh(wallgeo11$, wallMaterial);
+        var wall5 = new THREE.Mesh(wallgeo8$, wallMaterial);
+        var wall6 = new THREE.Mesh(wallgeo7cm, wallMaterial);
+        var wall7 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall8 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall9 = new THREE.Mesh(wallgeo5$, wallMaterial);
+        var wall10 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall11 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall12 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall13 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall14 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall15 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall16 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall17 = new THREE.Mesh(wallgeo0$, wallMaterial);
+        var wall18 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall19 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall20 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall21 = new THREE.Mesh(wallgeo4cm, wallMaterial);
+        var wall22 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall23 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall24 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall25 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall26 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall27 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall28 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall29 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall30 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall31 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall32 = new THREE.Mesh(wallgeo2$, wallMaterial);
+        var wall33 = new THREE.Mesh(wallgeo5cm, wallMaterial);
+        var wall34 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall35 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall36 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall37 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall38 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall39 = new THREE.Mesh(wallgeo4cm, wallMaterial);
+        var wall40 = new THREE.Mesh(wallgeo2$, wallMaterial);
+        var wall41 = new THREE.Mesh(wallgeo1$, wallMaterial);
+        var wall42 = new THREE.Mesh(wallgeo1$, wallMaterial);
+        var wall43 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall44 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall45 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall46 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall47 = new THREE.Mesh(wallgeo2$, wallMaterial);
+        var wall48 = new THREE.Mesh(wallgeo1$, wallMaterial);
+        var wall49 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+
+        wall1.position.set(950, 0, 3000);
+        wall1.rotation.y -= Math.PI / 2;
+        scene.add(wall1);
+        wall2.position.set(2200, 0, 3475);
+        scene.add(wall2);
+        wall3.position.set(3450, 0, 0);
+        wall3.rotation.y -= Math.PI / 2;
+        scene.add(wall3);
+        wall4.position.set(-25, 0, -3475);
+        scene.add(wall4);
+        wall5.position.set(-3475, 0, 375);
+        wall5.rotation.y -= Math.PI / 2;
+        scene.add(wall5);
+        wall6.position.set(-1750, 0, 3475);
+        scene.add(wall6);
+        wall7.position.set(1535, 0, 2500);
+        scene.add(wall7);
+        wall8.position.set(2150, 0, 1915);
+        wall8.rotation.y -= Math.PI / 2;
+        scene.add(wall8);
+        wall9.position.set(2750, 0, 575);
+        wall9.rotation.y = Math.PI / 2;
+        scene.add(wall9);
+        wall10.position.set(3075, 0, -2200);
+        scene.add(wall10);
+        wall11.position.set(2750, 0, -2550);
+        wall11.rotation.y -= Math.PI / 2;
+        scene.add(wall11);
+        wall12.position.set(2425, 0, -2900);
+        scene.add(wall12);
+        wall13.position.set(-2475, 0, -2725);
+        scene.add(wall13);
+        wall14.position.set(-1065, 0, -2835);
+        wall14.rotation.y = Math.PI / 2;
+        scene.add(wall14);
+        wall15.position.set(-1650, 0, -2200);
+        scene.add(wall15);
+        wall16.position.set(-2235, 0, -1825);
+        wall16.rotation.y = Math.PI / 2;
+        scene.add(wall16);
+        wall17.position.set(-2485, 0, -1450);
+        scene.add(wall17);
+        wall18.position.set(-2735, 0, -1825);
+        wall18.rotation.y = Math.PI / 2;
+        scene.add(wall18);
+        wall19.position.set(-2850, 0, 0);
+        scene.add(wall19);
+        wall20.position.set(-2250, 0, -325);
+        wall20.rotation.y = Math.PI / 2;
+        scene.add(wall20);
+        wall21.position.set(-1550, 0, -700);
+        scene.add(wall21);
+        wall22.position.set(-300, 0, -1655);
+        wall22.rotation.y = Math.PI / 2;
+        scene.add(wall22);
+        wall23.position.set(-925, 0, -1475);
+        scene.add(wall23);
+        wall24.position.set(285, 0, -2650);
+        scene.add(wall24);
+        wall25.position.set(1500, 0, -2850);
+        wall25.rotation.y = Math.PI / 2;
+        scene.add(wall25);
+        wall26.position.set(1825, 0, -2225);
+        scene.add(wall26);
+        wall27.position.set(2150, 0, -1250);
+        wall27.rotation.y = Math.PI / 2;
+        scene.add(wall27);
+        wall28.position.set(1565, 0, -250);
+        scene.add(wall28);
+        wall29.position.set(930, 0, 335);
+        wall29.rotation.y = Math.PI / 2;
+        scene.add(wall29);
+        wall30.position.set(-25, 0, 950);
+        scene.add(wall30);
+        wall31.position.set(-980, 0, 1275);
+        wall31.rotation.y = Math.PI / 2;
+        scene.add(wall31);
+        wall32.position.set(-450, 0, 1725);
+        wall32.rotation.y = Math.PI / 2;
+        scene.add(wall32);
+        wall33.position.set(-1675, 0, 2500);
+        scene.add(wall33);
+        wall34.position.set(-2300, 0, 2175);
+        wall34.rotation.y = Math.PI / 2;
+        scene.add(wall34);
+        wall35.position.set(-2950, 0, 1545);
+        wall35.rotation.y = Math.PI / 2;
+        scene.add(wall35);
+        wall36.position.set(-2320, 0, 590);
+        scene.add(wall36);
+        wall37.position.set(-1700, 0, 265);
+        wall37.rotation.y = Math.PI / 2;
+        scene.add(wall37);
+        wall38.position.set(-700, 0, -60);
+        scene.add(wall38);
+        wall39.position.set(300, 0, -700);
+        wall39.rotation.y = Math.PI / 2;
+        scene.add(wall39);
+        wall40.position.set(-480, 0, 500);
+        scene.add(wall40);
+        wall41.position.set(-1700, 0, 1450);
+        wall41.rotation.y = Math.PI / 2;
+        scene.add(wall41);
+        wall42.position.set(870, 0, -2125);
+        wall42.rotation.y = Math.PI / 2;
+        scene.add(wall42);
+        wall43.position.set(1195, 0, -1600);
+        scene.add(wall43);
+        wall44.position.set(1520, 0, -1250);
+        wall44.rotation.y = Math.PI / 2;
+        scene.add(wall44);
+        wall45.position.set(1195, 0, -925);
+        scene.add(wall45);
+        wall46.position.set(100, 0, 2475);
+        wall46.rotation.y = Math.PI / 2;
+        scene.add(wall46);
+        wall47.position.set(840, 0, 1520);
+        scene.add(wall47);
+        wall48.position.set(1575, 0, 1000);
+        wall48.rotation.y = Math.PI / 2;
+        scene.add(wall48);
+        wall49.position.set(1950, 0, 525);
+        scene.add(wall49);
+
+        //-------------------------------------------------------------MAP OVER---------------------------------------------------------------------
+
+        /*const personmaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+        const legGeometry = new THREE.BoxGeometry(legwidth, legheight, persondepth);
+        const armGeometry = new THREE.BoxGeometry(armwidth, armheight, persondepth);
+        const bodyGeometry = new THREE.BoxGeometry(bodywidth, bodyheight, persondepth);
+        const headGeometry = new THREE.BoxGeometry(headwidth, headheight, persondepth);
+
+        const leg1 = new THREE.Mesh(legGeometry, personmaterial);
+        const leg2 = new THREE.Mesh(legGeometry, personmaterial);
+        const body = new THREE.Mesh(bodyGeometry, personmaterial);
+        const arm1 = new THREE.Mesh(armGeometry, personmaterial);
+        const arm2 = new THREE.Mesh(armGeometry, personmaterial);
+        const head = new THREE.Mesh(headGeometry, personmaterial);
+
+        leg1.position.set(-10, 25, 0);
+        scene.add(leg1);
+        leg2.position.set(10, 25, 0);
+        scene.add(leg2);
+        body.position.set(0, 25 + 59, 0);
+        scene.add(body);
+        arm1.position.set(-28, 66 + 25, 0);
+        scene.add(arm1);
+        arm2.position.set(28, 66 + 25, 0);
+        scene.add(arm2);
+        head.position.set(0, 106 + 25, 0);
+        scene.add(head);
+
+        const person = new THREE.Group();
+        person.add(arm1); person.add(arm2); person.add(leg1); person.add(leg2); person.add(head); person.add(body);*/
+
+        /*
+               function rotatetest(m) {
+                   model1.rotation.y -= 0.02;
+                   requestAnimationFrame(rotatetest);
+                   renderer.render(scene, camera);
+               }
+              
+               var left = true;
+               async function patrolHorz(modelNum, rightLimit, leftLimit) {
+                   console.log(object.children[0].position.x);
+                   if (left) {
+                       //rotate=true;
+                       if (object.children[0].position.x <= -1000)
+                           left = false;
+                       //console.log(model1.position.x);
+                       if (object.children[0].rotation.y > 1.5) {
+                           object.children[0].rotation.y += 0.01;
+                       }
+                       else {
+                           object.children[0].position.x -= 5;
+                       }
+                   }
+                   else if (!left) {
+                       if (object.children[0].position.x >= 1000)
+                           left = true;
+                       //rotate = true;
+                       //left = false;
+                       console.log(model1.position.x);
+                       if (object.children[0].rotation.y < 1.5) {
+                           object.children[0].rotation.y -= 0.01;
+                       }
+                       else {
+                           object.children[0].position.x += 5;
+                       }
+                   }
+       
+                   renderer.render(scene, camera);
+                   //counter++;
+                   await new Promise(r => setTimeout(r, 25));
+                   requestAnimationFrame(patrolHorz);
+               }*/
+
+        var startingX = 700, startingY = 131, startingZ = 3100;
+        const manager = new THREE.LoadingManager();
+        manager.onStart = function (url, itemsLoaded, itemsTotal) {
+            console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+        };
+
+        manager.onLoad = function () {
+            console.log('Loading complete!');
+        };
+
+
+        manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+            console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+        };
+
+        manager.onError = function (url) {
+            console.log('There was an error loading ' + url);
+        };
+
+        var clock = new THREE.Clock();
+        var mixer2, mixer;
+        var model1;
+
+        //camera.position.set(startingX, 250, startingZ);
+
+        //startingZ = 0;
+        var group = new THREE.Group();
+        //group.add(person);
+
+
+
+        let loader = new GLTFLoader(manager);
+        loader.load('sheriff/s3.glb',
+            (glb) => {
+
+                function update() {
+                    mixer.update(deltaseconds);
+                }
+                mixer = new THREE.AnimationMixer(glb.scene);
+                var action = mixer.clipAction(glb.animations[0]);
+                action.play();
+
+                glb.scene.scale.set(350, 350, 350);
+                //glb.scene.position.set(startingX, -1, startingZ);
+                glb.scene.position.set(0, -2, 0);
+                glb.scene.rotation.y -= Math.PI / 2;
+                let helper = new THREE.BoxHelper(glb.scene, 0x0000ff);
+                glb.castShadow = true;
+                scene.add(glb.scene);
+
+                group.add(glb.scene);
+                //model1 = glb.scene.children[2];
+                //object.add(glb.scene);
+                //rotatetest(model1);
+                //patrolHorz(0, 1000, -1000);
+                renderer.render(scene, camera);
+                //animate();
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+            },
+            (error) => {
+                console.log(error)
+            }
+        );
+        //scene.add(object);
+        group.add(camera);
+        group.position.set(startingX, 250, startingZ);
+        //group.position.set(0, 250, 0);
+        scene.add(group);
+        /*
+        rotation = false;
+        rotationDone = false;
+
+        async function rotateModel(model) {
+            model.rotation.y
+            renderer.render(scene, camera);
+            rotationDone=true;
+        }*/
+
+
+
+        var distance = mycanvas.width / 7;
+
+        var keypressed = [false, false, false, false]; //up, down, left, right
+
+        document.onkeydown = (e) => {
+            //lock = true;
+            if (e.key == 'ArrowUp' || e.key == 'w') {
+                console.log("arrow up");  //outputs on the console "arrow up" when the button is pressed
+                keypressed[0] = true;
+            }
+            if (e.key == 'ArrowDown' || e.key == 's') {
+                console.log("arrow down");
+                keypressed[1] = true;
+            }
+
+            if (e.key == 'ArrowLeft' || e.key == 'a') {
+                console.log("arrow left");
+                keypressed[2] = true;
+            }
+            if (e.key == 'ArrowRight' || e.key == "d") {
+                console.log("arrow right");
+                keypressed[3] = true;
+
+            }
+            e.preventDefault();
+        }
+
+        document.onkeyup = (ev) => {
+            if (ev.key == 'ArrowUp' || ev.key == 'w') {
+                console.log("arrow up");
+                keypressed[0] = false;
+            }
+            if (ev.key == 'ArrowDown' || ev.key == 's') {
+                console.log("arrow down");
+                keypressed[1] = false;
+            }
+            if (ev.key == 'ArrowLeft' || ev.key == 'a') {
+                console.log("arrow left");
+                keypressed[2] = false;
+            }
+            if (ev.key == 'ArrowRight' || ev.key == 'd') {
+                console.log("arrow right");
+                keypressed[3] = false;
+            }
+            ev.preventDefault();
+        }
+
+        var playerspeed = 10;
+        var vertXdistance, vertZdistance;
+        var hozXdistance, hozZdistance;
+
+        /* should rotate the body of the player with the camera? */
+
+        function updateCameraPosition() {
+
+            vertXdistance = -Math.cos(camera.rotation.y + Math.PI / 2) * playerspeed;
+            vertZdistance = Math.sin(camera.rotation.y + Math.PI / 2) * playerspeed;
+
+            hozXdistance = Math.cos(camera.rotation.y) * playerspeed;
+            hozZdistance = - Math.sin(camera.rotation.y) * playerspeed;
+
+            var upCondition = group.position.z > floorPlane.position.z - (depth / 2 - vertZdistance - 80) && group.position.x > floorPlane.position.x - (width / 2 - vertXdistance - 80);
+            var downCondition = group.position.z < floorPlane.position.z + (depth / 2 - vertZdistance - 80) && group.position.x < floorPlane.position.x + (width / 2 - vertXdistance - 80);
+            var leftCondition = group.position.x > floorPlane.position.x - (width / 2 - hozXdistance - 80) && group.position.z > floorPlane.position.z - (depth / 2 - hozZdistance - 80);
+            var rightCondition = group.position.x < floorPlane.position.x + (width / 2 - hozXdistance - 80) && group.position.z < floorPlane.position.z + (depth / 2 - hozZdistance - 80);
+
+            if (upCondition && downCondition && leftCondition && rightCondition) {
+                if (keypressed[0]) { //arrow up
+                    group.position.x -= vertXdistance;
+                    group.position.z -= vertZdistance;
+                }
+                if (keypressed[1]) { //arrow down
+                    group.position.x += vertXdistance;
+                    group.position.z += vertZdistance;
+                }
+                if (keypressed[2]) { //arrow left
+                    group.position.x -= hozXdistance;
+                    group.position.z -= hozZdistance;
+                }
+                if (keypressed[3]) { //arrow right
+                    group.position.x += hozXdistance;
+                    group.position.z += hozZdistance;
+                }
+            }
+            else {
+                console.log("out of bounds");
+
+                group.position.x = startingX;
+                group.position.z = startingZ;
+            }
+        }
+
+        const bulletgeometry = new THREE.SphereGeometry(10, 64, 64);
+        const bulletmaterial = new THREE.MeshPhongMaterial({ color: 0x0f0f0f });
+        //let bulletStartingX = group.position.x, bulletStartingY = group.position.y, bulletStartingZ = group.position.z - 50;
+        let shoot = true;
+
+        document.onmousedown = (e) => {
+            if (shoot) {
+                if (e.button == 0) { //leftclick
+                    cooldown();
+                    const bullet = new THREE.Mesh(bulletgeometry, bulletmaterial); //creating a bullet
+                    bullet.position.x = group.position.x; bullet.position.y = 200; bullet.position.z = group.position.z;
+                    scene.add(bullet);
+                    moveBullet(bullet)
+                }
+            }
+        }
+
+        async function cooldown() {
+            shoot = false;
+            await new Promise(r => setTimeout(r, 500)); //pauses this function's execution for 1000 msec while other functions execute normally
+            shoot = true;
+        }
+
+        async function moveBullet(bullet) {
+            console.log("move bullet");
+            var lookAtVector = new THREE.Vector3(0, 0, -1); //vector of where the camera is looking
+            lookAtVector.applyQuaternion(camera.quaternion);
+
+            var speed = 2;
+            var bulletVector = lookAtVector.multiplyScalar(speed, speed, speed);
+
+            while (bullet.position.z > -500) {
+                bullet.position.x += bulletVector.x;
+                bullet.position.z += bulletVector.z;
+                await new Promise(r => setTimeout(r, 5));
+            }
+            scene.remove(bullet);
+        }
+
+        var cwidth = (mycanvas.offsetLeft + mycanvas.width) / 2;
+        var cheight = (mycanvas.height + mycanvas.offsetTop) / 2;
+
+        var oldmouse = [0, 0];
+        var newmouse = [0, 0];
+
+        var rotateup = false, rotatedown = false, rotateleft = false, rotateright = false;
+
+        document.onmousemove = function (e) {
+            console.log("mouse moved");
+
+            newmouse.x = (e.clientX - cwidth);
+            newmouse.y = -(e.clientY - cheight);
+            if (newmouse.y - oldmouse.y >= 1) { //move up
+                rotateup = true;
+            }
+            else if (newmouse.y - oldmouse.y <= -1) {
+                rotatedown = true;
+            }
+            if (newmouse.x - oldmouse.x >= 1) { //right
+                // if (newmouse.x <= 250)
+                camera.rotation.y += -0.03;
+            }
+            else if (newmouse.x - oldmouse.x <= -1) { //left
+                //if (newmouse.x >= -250)
+                camera.rotation.y += 0.03;
+            }
+
+            oldmouse.x = newmouse.x;
+            oldmouse.y = newmouse.y;
+        }
+
+        function updateCamera() {
+            var delta = clock.getDelta();
+            if (mixer) mixer.update(delta);
+
+            updateCameraPosition();
+            renderer.render(scene, camera); //draws the actual stuff on the canvas
+            requestAnimationFrame(updateCamera);
+        }
+        updateCamera();
+    </script>
+</body>
+
+</html>
