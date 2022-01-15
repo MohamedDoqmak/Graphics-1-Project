@@ -1,0 +1,1544 @@
+<html>
+
+<head>
+    <title>Final project</title>
+</head>
+
+<body>
+    <canvas width="700" height="700" id="canvas"> </canvas>
+    <script src="three.js"> </script>
+    <script script type="module">
+        import { GLTFLoader } from "./three/examples/jsm/loaders/GLTFLoader.js";
+
+        var mycanvas = document.getElementById("canvas");
+        var gl = mycanvas.getContext("experimental-webgl");
+
+        var gameover = false;
+        var object = new THREE.Object3D();
+        var modelglb = new THREE.Object3D();
+        var enemiesBB = [];
+        var AiMeshFor = [];
+        var AiCollisionDetection = [];
+
+        var playerspeed = 10;
+        var vertXdistance, vertZdistance;
+        var hozXdistance, hozZdistance;
+
+        var meshObject = new THREE.Object3D();
+
+        var clock = new THREE.Clock();
+        var mixer2, mixer, mixer3, mixer4, mixer5, playerMixer;
+
+        //bounding boxes for all of the walls
+        var wallsBB = [];
+        //Bounding Boxes :)
+        let playerBB;
+        var win = false;
+        const group = new THREE.Group();
+
+        var startingX = 700, startingY = 131, startingZ = 3100;
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0000ff);
+
+        const camera = new THREE.PerspectiveCamera(75, 700 / 700, 0.3, 15000);
+        scene.add(camera);
+
+        const hitboxMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000, opactiy: 0, transparent: false });
+        hitboxMaterial.depthWrite = false;
+
+        const enemyMaterial1 = new THREE.MeshStandardMaterial({ color: 0x00ff00, opactiy: 0, transparent: false });
+        enemyMaterial1.depthWrite = false;
+
+        const enemyMaterial2 = new THREE.MeshStandardMaterial({ color: 0xff00ff, opactiy: 0, transparent: false });
+        enemyMaterial2.depthWrite = false;
+
+        const enemyMaterial3 = new THREE.MeshStandardMaterial({ color: 0x000f00, opactiy: 0, transparent: false });
+        enemyMaterial3.depthWrite = false;
+
+        const enemyMaterial4 = new THREE.MeshStandardMaterial({ color: 0xff0f00, opactiy: 0, transparent: false });
+        enemyMaterial4.depthWrite = false;
+
+        const enemyMaterial5 = new THREE.MeshStandardMaterial({ color: 0xff0000, opactiy: 0, transparent: false });
+        enemyMaterial5.depthWrite = false;
+
+        const hitboxgeometry = new THREE.BoxGeometry(130, 300, 200);
+
+        const enemyAIMaterial1 = new THREE.MeshStandardMaterial({ color: 0xffffff, opactiy: 0, transparent: false });
+        enemyAIMaterial1.depthWrite = false;
+        const AiHitboxGeometry = new THREE.BoxGeometry(300, 300, 1000);
+        var hitbox = new THREE.Mesh(hitboxgeometry, hitboxMaterial);
+        hitbox.position.set(startingX, 150, startingZ);
+        scene.add(hitbox);
+
+        //bounding
+        playerBB = new THREE.Box3().setFromObject(hitbox);
+
+
+        const renderer = new THREE.WebGLRenderer({ canvas: mycanvas, antialias: true });
+        renderer.setSize(700, 700);
+        scene.fog = new THREE.FogExp2(0x11112f, 0.00008);
+        renderer.setClearColor(scene.fog.color);
+
+        //from what i understand in that the function "appends" the renderer to the body of the html document, where the renderer is a child object of "document"
+        //and domElement refers to the canvas, so the renderer is applied to canvas which is in the body of the html document
+        document.body.appendChild(renderer.domElement);
+
+        //-----------------------------------------------------LIGHTS---------------------------------------------------------------------
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        scene.add(ambientLight);
+
+        var spotLight = new THREE.SpotLight(0xffffff, 2, 1500, (17 * Math.PI / 180));
+        spotLight.decay += 1.5;
+        spotLight.castShadow = true;
+        camera.add(spotLight);
+        spotLight.position.set(0.1, 0.2, 1);
+        spotLight.target = camera;
+
+        spotLight.shadow.camera.near = 0.5; // default
+        spotLight.shadow.camera.far = 500; // default
+
+        //-----------------------------------------------------FLOOR---------------------------------------------------------------------
+        //floor dimensions
+        const width = 7000; //x value 
+
+        const depth = 7000; //y value
+
+        var floortextloader = new THREE.TextureLoader();
+        var floortexture = floortextloader.load("grass2.png");
+        floortexture.wrapS = floortexture.wrapT = THREE.RepeatWrapping;
+        floortexture.repeat.set(12, 12);
+
+        const PlaneGeometry = new THREE.PlaneGeometry(width, depth);
+        const PlaneMaterial = new THREE.MeshStandardMaterial({ map: floortexture, wireframe: false });
+
+        const floorPlane = new THREE.Mesh(PlaneGeometry, PlaneMaterial);
+
+        floorPlane.rotation.x -= Math.PI / 2;
+        floorPlane.position.set(0, 0, 0);
+        floorPlane.recieveShadow = true;
+        floorPlane.castShadow = true;
+        scene.add(floorPlane);
+
+        //-----------------------------------------------------SKYBOX---------------------------------------------------------------------
+
+        const skyboxImagepaths = ['front.png', 'back.png', 'up.png', 'down.png', 'left.png', 'right.png'];
+        var materialArray = new Array();
+        for (var i = 0; i < skyboxImagepaths.length; i++) {
+            var t = new THREE.TextureLoader().load(skyboxImagepaths[i]);
+            materialArray[i] = new THREE.MeshBasicMaterial({ map: t, side: THREE.BackSide });
+        }
+        const skyGeometry = new THREE.BoxGeometry(15000, 15000, 15000);
+        const skybox = new THREE.Mesh(skyGeometry, materialArray);
+        scene.add(skybox);
+
+        //-------------------------------------------------------------MAP---------------------------------------------------------------------
+
+        const wallheight = 600;
+        const walldepth = 50;
+
+        //height 10cm width 11.5	
+
+        //all the number are relative to the map
+        const wallgeo1cm = new THREE.BoxGeometry(700, wallheight, walldepth);
+        const wallgeo4cm = new THREE.BoxGeometry(2450, wallheight, walldepth);
+        const wallgeo10cm = new THREE.BoxGeometry(7000, wallheight, walldepth);
+        const wallgeo11$ = new THREE.BoxGeometry(6950, wallheight, walldepth);
+        const wallgeo8$ = new THREE.BoxGeometry(6250, wallheight, walldepth);
+        const wallgeo7cm = new THREE.BoxGeometry(3750, wallheight, walldepth);
+        const wallgeo2cm = new THREE.BoxGeometry(1220, wallheight, walldepth);
+        const wallgeo5$ = new THREE.BoxGeometry(4500, wallheight, walldepth);
+        const wallgeo3cm = new THREE.BoxGeometry(1960, wallheight, walldepth);
+        const wallgeo0$ = new THREE.BoxGeometry(550, wallheight, walldepth);
+        const wallgeo5cm = new THREE.BoxGeometry(2500, wallheight, walldepth);
+        const wallgeo2$ = new THREE.BoxGeometry(1520, wallheight, walldepth);
+        const wallgeo1$ = new THREE.BoxGeometry(1000, wallheight, walldepth);
+
+
+        var textloader = new THREE.TextureLoader();
+        var texture = textloader.load("stonewall1.jpg");//for small walls
+
+        var texture2 = textloader.load("stonewall1.jpg");//for bigger walls
+        texture2.wrapS = texture2.wrapT = THREE.RepeatWrapping;
+        texture2.repeat.set(2, 2);
+
+        var texture3 = textloader.load("stonewall1.jpg");//for the biggest walls
+        texture3.wrapS = texture3.wrapT = THREE.RepeatWrapping;
+        texture3.repeat.set(4, 2);
+
+        const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, map: texture });
+        const wallMaterial2 = new THREE.MeshStandardMaterial({ color: 0xffffff, map: texture2 });
+        const wallMaterial3 = new THREE.MeshStandardMaterial({ color: 0xffffff, map: texture3 });
+        var wall1 = new THREE.Mesh(wallgeo1$, wallMaterial);
+        var wall2 = new THREE.Mesh(wallgeo4cm, wallMaterial2);
+        var wall3 = new THREE.Mesh(wallgeo10cm, wallMaterial3);
+        var wall4 = new THREE.Mesh(wallgeo11$, wallMaterial3);
+        var wall5 = new THREE.Mesh(wallgeo8$, wallMaterial3);
+        var wall6 = new THREE.Mesh(wallgeo7cm, wallMaterial3);
+        var wall7 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall8 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall9 = new THREE.Mesh(wallgeo5$, wallMaterial2);
+        var wall10 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall11 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall12 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall13 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall14 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall15 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall16 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall17 = new THREE.Mesh(wallgeo0$, wallMaterial);
+        var wall18 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall19 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall20 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall21 = new THREE.Mesh(wallgeo4cm, wallMaterial2);
+        var wall22 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall23 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall24 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall25 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall26 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall27 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall28 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall29 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall30 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall31 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall32 = new THREE.Mesh(wallgeo2$, wallMaterial);
+        var wall33 = new THREE.Mesh(wallgeo5cm, wallMaterial2);
+        var wall34 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall35 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall36 = new THREE.Mesh(wallgeo2cm, wallMaterial);
+        var wall37 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall38 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall39 = new THREE.Mesh(wallgeo4cm, wallMaterial2);
+        var wall40 = new THREE.Mesh(wallgeo2$, wallMaterial);
+        var wall41 = new THREE.Mesh(wallgeo1$, wallMaterial);
+        var wall42 = new THREE.Mesh(wallgeo1$, wallMaterial);
+        var wall43 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall44 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall45 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall46 = new THREE.Mesh(wallgeo3cm, wallMaterial);
+        var wall47 = new THREE.Mesh(wallgeo2$, wallMaterial);
+        var wall48 = new THREE.Mesh(wallgeo1$, wallMaterial);
+        var wall49 = new THREE.Mesh(wallgeo1cm, wallMaterial);
+        var wall50 = new THREE.Mesh(wallgeo1$, wallMaterial);
+
+        wall1.position.set(950, 0, 3000);
+        wall1.rotation.y -= Math.PI / 2;
+        wall1.receiveShadow = true;
+        let Wall1BB = new THREE.Box3().setFromObject(wall1);
+        wallsBB[1] = Wall1BB;
+        scene.add(wall1);
+        meshObject.add(wall1);
+
+        wall2.position.set(2200, 0, 3475);
+        wall2.receiveShadow = true;
+        scene.add(wall2);
+        let Wall2BB = new THREE.Box3().setFromObject(wall2);
+        wallsBB[2] = Wall2BB;
+        meshObject.add(wall2);
+
+        wall3.position.set(3450, 0, 0);
+        wall3.rotation.y -= Math.PI / 2;
+        wall3.receiveShadow = true;
+        scene.add(wall3);
+        let Wall3BB = new THREE.Box3().setFromObject(wall3);
+        wallsBB[3] = Wall3BB;
+        meshObject.add(wall3);
+
+        wall4.position.set(-25, 0, -3475);
+        wall4.receiveShadow = true;
+        scene.add(wall4);
+        let Wall4BB = new THREE.Box3().setFromObject(wall4);
+        wallsBB[4] = Wall4BB;
+        meshObject.add(wall4);
+
+        wall5.position.set(-3475, 0, 375);
+        wall5.rotation.y -= Math.PI / 2;
+        wall5.receiveShadow = true;
+        scene.add(wall5);
+        let Wall5BB = new THREE.Box3().setFromObject(wall5);
+        wallsBB[5] = Wall5BB;
+        meshObject.add(wall5);
+
+        wall6.position.set(-1750, 0, 3475);
+        wall6.receiveShadow = true;
+        scene.add(wall6);
+        let Wall6BB = new THREE.Box3().setFromObject(wall6);
+        wallsBB[6] = Wall6BB;
+        meshObject.add(wall6);
+
+        wall7.position.set(1535, 0, 2500);
+        wall7.receiveShadow = true;
+        scene.add(wall7);
+        let Wall7BB = new THREE.Box3().setFromObject(wall7);
+        wallsBB[7] = Wall7BB;
+        meshObject.add(wall7);
+
+        wall8.position.set(2150, 0, 1915);
+        wall8.rotation.y -= Math.PI / 2;
+        wall8.receiveShadow = true;
+        scene.add(wall8);
+        let Wall8BB = new THREE.Box3().setFromObject(wall8);
+        wallsBB[8] = Wall8BB;
+        meshObject.add(wall8);
+
+        wall9.position.set(2750, 0, 575);
+        wall9.rotation.y = Math.PI / 2;
+        wall9.receiveShadow = true;
+        scene.add(wall9);
+        let Wall9BB = new THREE.Box3().setFromObject(wall9);
+        wallsBB[9] = Wall9BB;
+        meshObject.add(wall9);
+
+        wall10.position.set(3075, 0, -2200);
+        wall10.receiveShadow = true;
+        scene.add(wall10);
+        let Wall10BB = new THREE.Box3().setFromObject(wall10);
+        wallsBB[10] = Wall10BB;
+        meshObject.add(wall10);
+
+        wall11.position.set(2750, 0, -2550);
+        wall11.rotation.y -= Math.PI / 2;
+        wall11.receiveShadow = true;
+        scene.add(wall11);
+        let Wall11BB = new THREE.Box3().setFromObject(wall11);
+        wallsBB[11] = Wall11BB;
+        meshObject.add(wall11);
+
+        wall12.position.set(2425, 0, -2900);
+        wall12.receiveShadow = true;
+        scene.add(wall12);
+        let Wall12BB = new THREE.Box3().setFromObject(wall12);
+        wallsBB[12] = Wall12BB;
+        meshObject.add(wall12);
+
+        wall13.position.set(-2475, 0, -2725);
+        wall13.receiveShadow = true;
+        scene.add(wall13);
+        let Wall13BB = new THREE.Box3().setFromObject(wall13);
+        wallsBB[13] = Wall13BB;
+        meshObject.add(wall13);
+
+        wall14.position.set(-1065, 0, -2835);
+        wall14.rotation.y = Math.PI / 2;
+        wall14.receiveShadow = true;
+        scene.add(wall14);
+        let Wall14BB = new THREE.Box3().setFromObject(wall14);
+        wallsBB[14] = Wall14BB;
+        meshObject.add(wall14);
+
+        wall15.position.set(-1650, 0, -2200);
+        wall15.receiveShadow = true;
+        scene.add(wall15);
+        let Wall15BB = new THREE.Box3().setFromObject(wall15);
+        wallsBB[15] = Wall15BB;
+        meshObject.add(wall15);
+
+        wall16.position.set(-2235, 0, -1825);
+        wall16.rotation.y = Math.PI / 2;
+        wall16.receiveShadow = true;
+        scene.add(wall16);
+        let Wall16BB = new THREE.Box3().setFromObject(wall16);
+        wallsBB[16] = Wall16BB;
+        meshObject.add(wall16);
+
+        wall17.position.set(-2485, 0, -1450);
+        wall17.receiveShadow = true;
+        scene.add(wall17);
+        let Wall17BB = new THREE.Box3().setFromObject(wall17);
+        wallsBB[17] = Wall17BB;
+        meshObject.add(wall17);
+
+        wall18.position.set(-2735, 0, -1825);
+        wall18.rotation.y = Math.PI / 2;
+        wall18.receiveShadow = true;
+        scene.add(wall18);
+        let Wall18BB = new THREE.Box3().setFromObject(wall18);
+        wallsBB[18] = Wall18BB;
+        meshObject.add(wall18);
+
+        wall19.position.set(-2850, 0, 0);
+        wall19.receiveShadow = true;
+        scene.add(wall19);
+        let Wall19BB = new THREE.Box3().setFromObject(wall19);
+        wallsBB[19] = Wall19BB;
+        meshObject.add(wall19);
+
+        wall20.position.set(-2250, 0, -325);
+        wall20.rotation.y = Math.PI / 2;
+        wall20.receiveShadow = true;
+        scene.add(wall20);
+        let Wall20BB = new THREE.Box3().setFromObject(wall20);
+        wallsBB[20] = Wall20BB;
+        meshObject.add(wall20);
+
+        wall21.position.set(-1550, 0, -700);
+        wall21.receiveShadow = true;
+        scene.add(wall21);
+        let Wall21BB = new THREE.Box3().setFromObject(wall21);
+        wallsBB[21] = Wall21BB;
+        meshObject.add(wall21);
+
+        wall22.position.set(-300, 0, -1655);
+        wall22.rotation.y = Math.PI / 2;
+        wall22.receiveShadow = true;
+        scene.add(wall22);
+        let Wall22BB = new THREE.Box3().setFromObject(wall22);
+        wallsBB[22] = Wall22BB;
+        meshObject.add(wall22);
+
+        wall23.position.set(-925, 0, -1475);
+        wall23.receiveShadow = true;
+        scene.add(wall23);
+        let Wall23BB = new THREE.Box3().setFromObject(wall23);
+        wallsBB[23] = Wall23BB;
+        meshObject.add(wall23);
+
+        wall24.position.set(285, 0, -2650);
+        wall24.receiveShadow = true;
+        scene.add(wall24);
+        let Wall24BB = new THREE.Box3().setFromObject(wall24);
+        wallsBB[24] = Wall24BB;
+        meshObject.add(wall24);
+
+        wall25.position.set(1500, 0, -2850);
+        wall25.rotation.y = Math.PI / 2;
+        wall25.receiveShadow = true;
+        scene.add(wall25);
+        let Wall25BB = new THREE.Box3().setFromObject(wall25);
+        wallsBB[25] = Wall25BB;
+        meshObject.add(wall25);
+
+        wall26.position.set(1825, 0, -2225);
+        wall26.receiveShadow = true;
+        scene.add(wall26);
+        let Wall26BB = new THREE.Box3().setFromObject(wall26);
+        wallsBB[26] = Wall26BB;
+        meshObject.add(wall26);
+
+        wall27.position.set(2150, 0, -1250);
+        wall27.rotation.y = Math.PI / 2;
+        wall27.receiveShadow = true;
+        scene.add(wall27);
+        let Wall27BB = new THREE.Box3().setFromObject(wall27);
+        wallsBB[27] = Wall27BB;
+        meshObject.add(wall27);
+
+        wall28.position.set(1565, 0, -250);
+        wall28.receiveShadow = true;
+        scene.add(wall28);
+        let Wall28BB = new THREE.Box3().setFromObject(wall28);
+        wallsBB[28] = Wall28BB;
+        meshObject.add(wall28);
+
+        wall29.position.set(930, 0, 335);
+        wall29.rotation.y = Math.PI / 2;
+        wall29.receiveShadow = true;
+        scene.add(wall29);
+        let Wall29BB = new THREE.Box3().setFromObject(wall29);
+        wallsBB[29] = Wall29BB;
+        meshObject.add(wall29);
+
+        wall30.position.set(-25, 0, 950);
+        wall30.receiveShadow = true;
+        scene.add(wall30);
+        let Wall30BB = new THREE.Box3().setFromObject(wall30);
+        wallsBB[30] = Wall30BB;
+        meshObject.add(wall30);
+        //
+        wall31.position.set(-980, 0, 1275);
+        wall31.rotation.y = Math.PI / 2;
+        wall31.receiveShadow = true;
+        scene.add(wall31);
+        let Wall31BB = new THREE.Box3().setFromObject(wall31);
+        wallsBB[31] = Wall31BB;
+        meshObject.add(wall31);
+
+        wall32.position.set(-450, 0, 1725);
+        wall32.rotation.y = Math.PI / 2;
+        wall32.receiveShadow = true;
+        scene.add(wall32);
+        let Wall32BB = new THREE.Box3().setFromObject(wall32);
+        wallsBB[32] = Wall32BB;
+        meshObject.add(wall32);
+
+        wall33.position.set(-1675, 0, 2500);
+        wall33.receiveShadow = true;
+        scene.add(wall33);
+        let Wall33BB = new THREE.Box3().setFromObject(wall33);
+        wallsBB[33] = Wall33BB;
+        meshObject.add(wall33);
+
+        wall34.position.set(-2300, 0, 2175);
+        wall34.rotation.y = Math.PI / 2;
+        wall34.receiveShadow = true;
+        scene.add(wall34);
+        let Wall34BB = new THREE.Box3().setFromObject(wall34);
+        wallsBB[34] = Wall34BB;
+        meshObject.add(wall34);
+
+        wall35.position.set(-2950, 0, 1545);
+        wall35.rotation.y = Math.PI / 2;
+        wall35.receiveShadow = true;
+        scene.add(wall35);
+        meshObject.add(wall35);
+        let Wall35BB = new THREE.Box3().setFromObject(wall35);
+        wallsBB[35] = Wall35BB;
+
+        wall36.position.set(-2320, 0, 590);
+        wall36.receiveShadow = true;
+        scene.add(wall36);
+        meshObject.add(wall36);
+        let Wall36BB = new THREE.Box3().setFromObject(wall36);
+        wallsBB[36] = Wall36BB;
+
+        wall37.position.set(-1700, 0, 265);
+        wall37.rotation.y = Math.PI / 2;
+        wall37.receiveShadow = true;
+        scene.add(wall37);
+        meshObject.add(wall37);
+        let Wall37BB = new THREE.Box3().setFromObject(wall37);
+        wallsBB[37] = Wall37BB;
+
+        wall38.position.set(-700, 0, -60);
+        wall1.receiveShadow = true;
+        scene.add(wall38);
+        meshObject.add(wall38);
+        let Wall38BB = new THREE.Box3().setFromObject(wall38);
+        wallsBB[38] = Wall38BB;
+
+        wall39.position.set(300, 0, -700);
+        wall39.rotation.y = Math.PI / 2;
+        wall39.receiveShadow = true;
+        scene.add(wall39);
+        meshObject.add(wall39);
+        let Wall39BB = new THREE.Box3().setFromObject(wall39);
+        wallsBB[39] = Wall39BB;
+
+        wall40.position.set(-480, 0, 500);
+        wall40.receiveShadow = true;
+        scene.add(wall40);
+        meshObject.add(wall40);
+        let Wall40BB = new THREE.Box3().setFromObject(wall40);
+        wallsBB[40] = Wall40BB;
+
+        wall41.position.set(-1700, 0, 1450);
+        wall41.rotation.y = Math.PI / 2;
+        wall41.receiveShadow = true;
+        scene.add(wall41);
+        meshObject.add(wall41);
+        let Wall41BB = new THREE.Box3().setFromObject(wall41);
+        wallsBB[41] = Wall41BB;
+
+        wall42.position.set(870, 0, -2125);
+        wall42.rotation.y = Math.PI / 2;
+        wall42.receiveShadow = true;
+        scene.add(wall42);
+        meshObject.add(wall42);
+        let Wall42BB = new THREE.Box3().setFromObject(wall42);
+        wallsBB[42] = Wall42BB;
+
+        wall43.position.set(1195, 0, -1600);
+        wall43.receiveShadow = true;
+        scene.add(wall43);
+        meshObject.add(wall43);
+        let Wall43BB = new THREE.Box3().setFromObject(wall43);
+        wallsBB[43] = Wall43BB;
+
+        wall44.position.set(1520, 0, -1250);
+        wall44.rotation.y = Math.PI / 2;
+        wall44.receiveShadow = true;
+        scene.add(wall44);
+        meshObject.add(wall44);
+        let Wall44BB = new THREE.Box3().setFromObject(wall44);
+        wallsBB[44] = Wall44BB;
+
+        wall45.position.set(1195, 0, -925);
+        wall45.receiveShadow = true;
+        scene.add(wall45);
+        meshObject.add(wall45);
+        let Wall45BB = new THREE.Box3().setFromObject(wall45);
+        wallsBB[45] = Wall45BB;
+
+        wall46.position.set(100, 0, 2475);
+        wall46.rotation.y = Math.PI / 2;
+        wall46.receiveShadow = true;
+        scene.add(wall46);
+        meshObject.add(wall46);
+        let Wall46BB = new THREE.Box3().setFromObject(wall46);
+        wallsBB[46] = Wall46BB;
+
+        wall47.position.set(840, 0, 1520);
+        wall47.receiveShadow = true;
+        scene.add(wall47);
+        meshObject.add(wall47);
+        let Wall47BB = new THREE.Box3().setFromObject(wall47);
+        wallsBB[47] = Wall47BB;
+
+        wall48.position.set(1575, 0, 1000);
+        wall48.rotation.y = Math.PI / 2;
+        wall48.receiveShadow = true;
+        scene.add(wall48);
+        meshObject.add(wall48);
+        let Wall48BB = new THREE.Box3().setFromObject(wall48);
+        wallsBB[48] = Wall48BB;
+
+        wall49.position.set(1950, 0, 525);
+        wall49.receiveShadow = true;
+        scene.add(wall49);
+        meshObject.add(wall49);
+        let Wall49BB = new THREE.Box3().setFromObject(wall49);
+        wallsBB[49] = Wall49BB;
+
+        wall50.position.set(500, 0, 3475);
+        wall50.receiveShadow = true;
+        scene.add(wall50);
+        meshObject.add(wall50);
+        let Wall50BB = new THREE.Box3().setFromObject(wall50);
+        wallsBB[50] = Wall50BB;
+
+        //-------------------------------------------------------------MAP OVER---------------------------------------------------------------------
+
+        //-------------------------------------------------------------AI MESH/BOXES---------------------------------------------------------------------
+
+        AiMeshFor[0] = new THREE.Mesh(AiHitboxGeometry, enemyAIMaterial1);
+        AiMeshFor[0].position.set(-150 - 300, 150, startingZ);
+        AiMeshFor[0].rotation.y -= Math.PI / 2;
+        scene.add(AiMeshFor[0]);
+        AiCollisionDetection[0] = new THREE.Box3().setFromObject(AiMeshFor[0]);
+
+        AiMeshFor[1] = new THREE.Mesh(AiHitboxGeometry, enemyAIMaterial1);
+        AiMeshFor[1].position.set(2500, 150, startingZ + 300);
+        scene.add(AiMeshFor[1]);
+        AiCollisionDetection[1] = new THREE.Box3().setFromObject(AiMeshFor[1]);
+
+        AiMeshFor[2] = new THREE.Mesh(AiHitboxGeometry, enemyAIMaterial1);
+        AiMeshFor[2].position.set(-750 - 300, 150, 2200);
+        AiMeshFor[2].rotation.y += Math.PI / 2;
+        scene.add(AiMeshFor[2]);
+        AiCollisionDetection[2] = new THREE.Box3().setFromObject(AiMeshFor[2]);
+
+        AiMeshFor[3] = new THREE.Mesh(AiHitboxGeometry, enemyAIMaterial1);
+        AiMeshFor[3].position.set(startingX - 100, 150, 600 + 300);
+        scene.add(AiMeshFor[3]);
+        AiCollisionDetection[3] = new THREE.Box3().setFromObject(AiMeshFor[3]);
+
+        AiMeshFor[4] = new THREE.Mesh(AiHitboxGeometry, enemyAIMaterial1);
+        AiMeshFor[4].position.set(-500 - 300, 150, -1050);
+        AiMeshFor[4].rotation.y += Math.PI / 2;
+        scene.add(AiMeshFor[4]);
+        AiCollisionDetection[4] = new THREE.Box3().setFromObject(AiMeshFor[4]);
+
+        //--------------------------------------------------------PATROLLING----------------------------------------------------------
+        var forward = [true, true, true, true, true]; //array that determines the direction each model is going, one index for each model 
+        var rotate = [false, false, false, false, false]; //array that determines if model is rotating, one index for each model
+
+        var lowerLimit = [-3000, 3100, -2000, 600, -3200]; //lower limit for each model
+        var upperLimit = [-150, -2500, -750, -2100, -500]; //upper limit for each model
+
+        async function patrolHorz(modelNum) {
+            if (gameover || win) {
+                return;
+            }
+            if (forward[modelNum]) { //if the model is going forward
+                if (rotate[modelNum]) { //if the model has reached the upper limit and is rotating
+                    if (modelglb.children[modelNum].rotation.y <= 0 - Math.PI / 2) { //check if the rotation has reached it's limit
+                        modelglb.children[modelNum].rotation.y += 0.05;
+                        meshObject.children[modelNum + 50].rotation.y += 0.05;
+                        AiMeshFor[modelNum].rotation.y += 0.05;
+                    }
+                    else {
+                        rotate[modelNum] = false;
+                    }
+                }
+                else {//if the model is not rotating then continue moving
+                    modelglb.children[modelNum].position.x -= 5;
+                    meshObject.children[modelNum + 50].position.x -= 5;
+                    AiMeshFor[modelNum].position.x -= 5;
+                }
+            }
+
+            else {//if the model is going backwards
+                if (rotate[modelNum]) { //if the model has reached the lower limit and is rotating
+                    if (modelglb.children[modelNum].rotation.y >= (- Math.PI / 2) - Math.PI) {//check if the rotation has reached it's limit
+                        modelglb.children[modelNum].rotation.y -= 0.05;
+                        meshObject.children[modelNum + 50].rotation.y -= 0.05;
+                        AiMeshFor[modelNum].rotation.y -= 0.05;
+                    }
+                }
+                else { //if the model is not rotating then continue moving
+                    modelglb.children[modelNum].position.x += 5;
+                    meshObject.children[modelNum + 50].position.x += 5;
+                    AiMeshFor[modelNum].position.x += 5;
+                }
+            }
+
+            if (modelglb.children[modelNum].position.x <= lowerLimit[modelNum]) {//if the model has reached the lower limit
+                forward[modelNum] = false; //go backwards
+                if (modelglb.children[modelNum].rotation.y <= (- Math.PI / 2) - Math.PI) {//check if the rotation has reached it's limit
+                    rotate[modelNum] = false;
+                    AiMeshFor[modelNum].position.x += 150 + 500;//give the big BB an offset
+                }
+                else {//if the model has reached the limit and is not done rotating, make rotation=true
+                    rotate[modelNum] = true;
+                }
+            }
+
+            else if (modelglb.children[modelNum].position.x >= upperLimit[modelNum]) {//if the model has reached the upper limit
+                forward[modelNum] = true; //go forwards
+                if (modelglb.children[modelNum].rotation.y >= 0 - Math.PI / 2) {//check if the rotation has reached it's limit
+                    rotate[modelNum] = false;
+                    AiMeshFor[modelNum].position.x -= 150 + 500;//give the big BB an offset
+                }
+                else {//if the model has reached the limit and is not done rotating, make rotation=true
+                    rotate[modelNum] = true;
+                }
+            }
+            enemiesBB[modelNum] = new THREE.Box3().setFromObject(meshObject.children[modelNum + 50]);
+            AiCollisionDetection[modelNum] = new THREE.Box3().setFromObject(AiMeshFor[modelNum]);
+            renderer.render(scene, camera);
+            await new Promise(r => setTimeout(r, 25));
+            //requestAnimationFrame(patrolHorz);
+            patrolHorz(modelNum);
+
+        }
+
+
+        //--------------------------------------------------------------------------
+
+        async function patrolVert(modelNum) {
+            if (gameover || win) {
+                return;
+            }
+            if (forward[modelNum]) { //if the model is going forward
+                if (rotate[modelNum]) { //if the model has reached the upper limit and is rotating
+                    if (modelglb.children[modelNum].rotation.y >= - Math.PI - Math.PI) { //check if the rotation has reached it's limit
+                        modelglb.children[modelNum].rotation.y -= 0.05;
+                        meshObject.children[modelNum + 50].rotation.y -= 0.05;
+                        AiMeshFor[modelNum].rotation.y -= 0.05;
+                    }
+                    else {
+
+                        rotate[modelNum] = false;
+                    }
+                }
+                else {//if the model is not rotating then continue moving
+                    modelglb.children[modelNum].position.z += 5;
+                    meshObject.children[modelNum + 50].position.z += 5;
+                    AiMeshFor[modelNum].position.z += 5;
+                }
+            }
+            else { //if the model is going backwards
+                if (rotate[modelNum]) { //if the model has reached the lower limit and is rotating
+                    if (modelglb.children[modelNum].rotation.y <= - Math.PI) {//check if the rotation has reached it's limit
+
+                        modelglb.children[modelNum].rotation.y += 0.05;
+                        meshObject.children[modelNum + 50].rotation.y += 0.05;
+                        AiMeshFor[modelNum].rotation.y += 0.05;
+                    }
+                }
+                else {//if the model is not rotating then continue moving
+                    modelglb.children[modelNum].position.z -= 5;
+                    meshObject.children[modelNum + 50].position.z -= 5;
+                    AiMeshFor[modelNum].position.z -= 5;
+                }
+            }
+            if (modelglb.children[modelNum].position.z > lowerLimit[modelNum]) { //if the model has reached the lower limit
+
+                forward[modelNum] = false; //go backwards
+
+                if (modelglb.children[modelNum].rotation.y >= - Math.PI) {//check if the rotation has reached it's limit
+                    rotate[modelNum] = false;
+                    AiMeshFor[modelNum].position.z -= 150 + 500; //give the big BB an offset
+                }
+                else { //if the model has reached the limit and is not done rotating, make rotation=true
+                    rotate[modelNum] = true;
+                }
+            }
+            else if (modelglb.children[modelNum].position.z <= upperLimit[modelNum]) {//if the model has reached the upper limit
+                forward[modelNum] = true;//go forwards
+                if (modelglb.children[modelNum].rotation.y <= - Math.PI - Math.PI) {//check if the rotation has reached it's limit
+                    rotate[modelNum] = false;
+                    AiMeshFor[modelNum].position.z += 150 + 500; //give the big BB an offset
+                }
+                else { //if the model has reached the limit and is not done rotating, make rotation=true
+                    rotate[modelNum] = true;
+                }
+            }
+            enemiesBB[modelNum] = new THREE.Box3().setFromObject(meshObject.children[modelNum + 50]);
+            AiCollisionDetection[modelNum] = new THREE.Box3().setFromObject(AiMeshFor[modelNum]);
+            renderer.render(scene, camera);
+            await new Promise(r => setTimeout(r, 25));
+            //requestAnimationFrame(patrolVert);
+
+            patrolVert(modelNum);
+
+        }
+        //--------------------------------------------------------PATROLLING OVER----------------------------------------------------------
+
+        //--------------------------------------------------------MANAGER----------------------------------------------------------
+        var allLoaded = false; //as long as it is false, other functions are not allowed to access the models till they are fully loaded
+
+        const manager = new THREE.LoadingManager(); //manager is used to keep track of the progress of loaders assigned to it
+        manager.onStart = function (url, itemsLoaded, itemsTotal) {
+            console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+        };
+
+        manager.onLoad = function () {
+            console.log('Loading complete!');
+            allLoaded = true;
+        };
+
+
+        manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+            console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+        };
+
+        manager.onError = function (url) {
+            console.log('There was an error loading ' + url);
+        };
+
+        //--------------------------------------------------------LOADERS----------------------------------------------------------
+
+        let playerloader = new GLTFLoader(manager); //loader takes the manager that will keep track of it
+        playerloader.load('player.glb', //takes glb path as first parameter
+            (glbp) => {
+                playerMixer = new THREE.AnimationMixer(glbp.scene); //the mixer controls the animations
+                var playeraction = playerMixer.clipAction(glbp.animations[0]); //clipaction selects a specific animation
+                playeraction.play();
+
+                glbp.scene.scale.set(350, 350, 350);
+                glbp.scene.position.set(0, -252, 0);
+
+                glbp.scene.traverse(function (object) { //goes over each object in the glb
+                    object.castShadow = true;
+                    object.frustumCulled = false; //prevents the mesh from disappearing if the mesh is close to the camera
+                });
+                glbp.scene.rotation.y -= Math.PI;
+                scene.add(glbp.scene);
+                group.add(glbp.scene);
+                renderer.render(scene, camera);
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+            },
+            (error) => {
+                console.log(error)
+            }
+        );
+
+        let loader = new GLTFLoader(manager);  //loader takes the manager that will keep track of it
+        loader.load('sheriff/s3.glb', //takes glb path as first parameter
+            (glb) => {
+
+                mixer = new THREE.AnimationMixer(glb.scene); //the mixer controls the animations
+                var action = mixer.clipAction(glb.animations[0]); //clipaction selects a specific animation
+                action.play();
+
+                glb.scene.scale.set(350, 350, 350);
+                glb.scene.position.set(-150, -1, startingZ);
+
+                glb.scene.traverse(function (object) { //goes over each object in the glb
+                    object.castShadow = true;
+                });
+                glb.scene.rotation.y -= Math.PI / 2;
+
+                let hitboxmeshes0 = new THREE.Mesh(hitboxgeometry, enemyMaterial1);
+                hitboxmeshes0.position.set(-150, 150, startingZ);
+                meshObject.add(hitboxmeshes0);
+
+                enemiesBB[0] = new THREE.Box3().setFromObject(hitboxmeshes0);
+                scene.add(glb.scene);
+                modelglb.add(glb.scene);
+                patrolHorz(0);
+
+                renderer.render(scene, camera);
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+            },
+            (error) => {
+                console.log(error)
+            }
+        );
+
+
+        let loader2 = new GLTFLoader(manager);  //loader takes the manager that will keep track of it
+        loader2.load('sheriff/s3.glb', //takes glb path as first parameter
+            (glb2) => {
+
+                mixer2 = new THREE.AnimationMixer(glb2.scene); //the mixer controls the animations
+                var action2 = mixer2.clipAction(glb2.animations[0]); //clipaction selects a specific animation
+                action2.play();
+
+                glb2.scene.scale.set(350, 350, 350);
+                glb2.scene.position.set(2500, -1, startingZ);
+                glb2.scene.rotation.y -= Math.PI;
+
+                glb2.scene.traverse(function (object) { //goes over each object in the glb
+                    object.castShadow = true;
+                });
+                scene.add(glb2.scene);
+                let hitboxmeshes1 = new THREE.Mesh(hitboxgeometry, enemyMaterial2);
+                hitboxmeshes1.position.set(2500, 150, startingZ);
+                hitboxmeshes1.rotation.y -= Math.PI / 2;
+                meshObject.add(hitboxmeshes1);
+
+                enemiesBB[1] = new THREE.Box3().setFromObject(hitboxmeshes1);
+                modelglb.add(glb2.scene)
+
+                patrolVert(1);
+                renderer.render(scene, camera);
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+            },
+            (error) => {
+                console.log(error)
+            }
+        );
+
+
+
+
+        let loader3 = new GLTFLoader(manager);  //loader takes the manager that will keep track of it
+        loader3.load('sheriff/s3.glb', //takes glb path as first parameter
+            (glb3) => {
+
+                mixer3 = new THREE.AnimationMixer(glb3.scene); //the mixer controls the animations
+                var action3 = mixer3.clipAction(glb3.animations[0]); //clipaction selects a specific animation
+                action3.play();
+
+                glb3.scene.scale.set(350, 350, 350);
+                glb3.scene.position.set(-750, -1, 2200);
+
+                glb3.scene.traverse(function (object) { //goes over each object in the glb
+                    object.castShadow = true;
+                });
+                glb3.scene.rotation.y -= Math.PI / 2;
+                scene.add(glb3.scene);
+                let hitboxmeshes2 = new THREE.Mesh(hitboxgeometry, enemyMaterial3);
+                hitboxmeshes2.position.set(-750, 150, 2200);
+                meshObject.add(hitboxmeshes2);
+
+                enemiesBB[2] = new THREE.Box3().setFromObject(hitboxmeshes2);
+                modelglb.add(glb3.scene);
+                patrolHorz(2);
+
+                renderer.render(scene, camera);
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+            },
+            (error) => {
+                console.log(error)
+            }
+        );
+
+        let loader4 = new GLTFLoader(manager);  //loader takes the manager that will keep track of it
+        loader4.load('sheriff/s3.glb', //takes glb path as first parameter
+            (glb4) => {
+
+                mixer4 = new THREE.AnimationMixer(glb4.scene); //the mixer controls the animations
+                var action4 = mixer4.clipAction(glb4.animations[0]); //clipaction selects a specific animation
+                action4.play();
+
+                glb4.scene.scale.set(350, 350, 350);
+                glb4.scene.position.set(startingX - 100, -1, 600);
+
+                glb4.scene.traverse(function (object) { //goes over each object in the glb
+                    object.castShadow = true;
+                });
+                glb4.scene.rotation.y -= Math.PI;
+                scene.add(glb4.scene);
+                let hitboxmeshes3 = new THREE.Mesh(hitboxgeometry, enemyMaterial4);
+                hitboxmeshes3.position.set(startingX - 100, 150, 600);
+                hitboxmeshes3.rotation.y -= Math.PI / 2;
+                meshObject.add(hitboxmeshes3);
+
+                enemiesBB[3] = new THREE.Box3().setFromObject(hitboxmeshes3);
+                modelglb.add(glb4.scene);
+                patrolVert(3);
+
+                renderer.render(scene, camera);
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+            },
+            (error) => {
+                console.log(error)
+            }
+        );
+
+
+        let loader5 = new GLTFLoader(manager);  //loader takes the manager that will keep track of it
+        loader5.load('sheriff/s3.glb',
+            (glb5) => {
+
+                mixer5 = new THREE.AnimationMixer(glb5.scene); //the mixer controls the animations
+                var action5 = mixer5.clipAction(glb5.animations[0]); //clipaction selects a specific animation
+                action5.play();
+
+                glb5.scene.scale.set(350, 350, 350);
+                glb5.scene.position.set(-500, -1, -1050);
+                glb5.scene.traverse(function (object) { //goes over each object in the glb
+                    object.castShadow = true;
+                });
+                glb5.scene.rotation.y -= Math.PI / 2;
+                scene.add(glb5.scene);
+                let hitboxmeshes4 = new THREE.Mesh(hitboxgeometry, enemyMaterial5);
+                hitboxmeshes4.position.set(-500, 150, -1050);
+                enemiesBB[4] = new THREE.Box3().setFromObject(hitboxmeshes4);
+                meshObject.add(hitboxmeshes4);
+                modelglb.add(glb5.scene);
+                patrolHorz(4);
+
+                renderer.render(scene, camera);
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + '% loaded')
+            },
+            (error) => {
+                console.log(error)
+            }
+        );
+
+
+        scene.add(meshObject);
+
+        scene.add(modelglb);
+
+        group.add(camera);
+        camera.position.set(0, 0, -45);
+        group.position.set(startingX, 250, startingZ);
+        scene.add(group);
+
+        var distance = mycanvas.width / 7;
+
+        var keypressed = [false, false, false, false]; //up, down, left, right
+
+        document.onkeydown = (e) => {
+            //lock = true;
+            if (e.key == 'ArrowUp' || e.key == 'w') {
+                //console.log("arrow up");  
+                keypressed[0] = true;
+            }
+            if (e.key == 'ArrowDown' || e.key == 's') {
+                //console.log("arrow down");
+                keypressed[1] = true;
+            }
+
+            if (e.key == 'ArrowLeft' || e.key == 'a') {
+                //console.log("arrow left");
+                keypressed[2] = true;
+            }
+            if (e.key == 'ArrowRight' || e.key == "d") {
+                //console.log("arrow right");
+                keypressed[3] = true;
+
+            }
+            e.preventDefault();
+        }
+
+        document.onkeyup = (ev) => {
+            if (ev.key == 'ArrowUp' || ev.key == 'w') {
+                //console.log("arrow up");
+                keypressed[0] = false;
+            }
+            if (ev.key == 'ArrowDown' || ev.key == 's') {
+                //console.log("arrow down");
+                keypressed[1] = false;
+            }
+            if (ev.key == 'ArrowLeft' || ev.key == 'a') {
+                // console.log("arrow left");
+                keypressed[2] = false;
+            }
+            if (ev.key == 'ArrowRight' || ev.key == 'd') {
+                //console.log("arrow right");
+                keypressed[3] = false;
+            }
+            ev.preventDefault();
+        }
+
+
+
+        var flash = new THREE.PointLight(0xe6b209, 0, 300, 2); //color, intensity, range, decay
+        flash.position.set(10, -75, -360);
+        group.add(flash);
+
+        async function gunFalsh() {
+            flash.intensity = 10;
+            await new Promise(r => setTimeout(r, 50));
+            flash.intensity = 0;
+        }
+
+        function gunshot() {
+            const gunlistener = new THREE.AudioListener(); //it's a child of the camera, we add it to the camera so that we can hear the sound that the listener plays
+            camera.add(gunlistener);
+
+            // create a global audio source
+            const gunsound = new THREE.Audio(gunlistener); //decides the properties of the audio
+
+            // load a sound and set it as the Audio object's buffer
+            const gunaudioLoader = new THREE.AudioLoader(); //audio loader fetches the audio file
+            gunaudioLoader.load('ak47-oneshot.mp3', function (buffer) {
+                gunsound.setBuffer(buffer); //buffer basically holds the audio file and gives it to the Audio() object to play/pause etc
+                gunsound.setLoop(false);
+                gunsound.setVolume(0.5);
+                gunsound.play();
+            }, function (xhr) {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+                // onError callback
+                function (err) {
+                    console.log('error');
+                }
+            );
+
+        }
+
+        var enemycolors = [new THREE.Color(0x00ff00), new THREE.Color(0xff00ff), new THREE.Color(0x000f00), new THREE.Color(0xff0f00), new THREE.Color(0xff0000)];
+        var playsound = 0;
+
+        document.onmousedown = (e) => {
+            if (!gameover) {
+                playsound++;
+                if (playsound == 1) {
+                    rainSound();
+                }
+                gunFalsh();
+                gunshot();
+
+                let intersects = []; //array that will contain the objects hit by the ray
+                let vector = new THREE.Vector2();
+
+                vector.set(2 * (e.pageX / (mycanvas.offsetLeft + mycanvas.width)) - 1,
+                    1 - 2 * (e.pageY / (mycanvas.height + mycanvas.offsetTop))
+                ); //get where the mouse clicked on the canvas
+
+                let raycaster = new THREE.Raycaster();
+                raycaster.setFromCamera(vector, camera);
+
+                intersects = raycaster.intersectObjects(meshObject.children); //returns the objects that the ray hit from meshobject 
+
+                if (intersects.length > 0) {
+
+                    for (var i = 0; i < 5; i++) {
+                        var samecolor = intersects[0].object.material.color.equals(enemycolors[i]); //if the color of the first object hit is an enemy
+                        if (samecolor == true) {
+                            console.log("HOW DARE YOU KILL ME");
+
+                            meshObject.children[50 + i].position.y = -1000;
+                            modelglb.children[i].position.y = -1000;
+                            AiMeshFor[i].position.y = -1000;
+                            AiCollisionDetection[i] = new THREE.Box3().setFromObject(AiMeshFor[i]);
+                            break;
+                        }
+                    }
+                    renderer.render(scene, camera);
+                }
+            }
+        }
+
+
+        //-----------------------------------------------------RAIN---------------------------------------------------------------------
+
+        var rainCount = 5000; //number of rain drops in scene
+        var rainMaterial = new THREE.PointsMaterial({ //creates points not a 3d shape
+            color: 0xaaaaaa,
+            size: 0.1,
+            transparent: true
+        });
+        var rain; let rainGeo; var points = [];
+        for (let i = 0; i < rainCount; i++) {
+            var rainDrop = new THREE.Vector3(
+                Math.random() * 9000 - 4500,
+                Math.random() * 9000,
+                Math.random() * 9000 - 4500
+            );
+            points.push(rainDrop);
+        }
+
+        rainGeo = new THREE.BufferGeometry().setFromPoints(points);
+        rain = new THREE.Points(rainGeo, rainMaterial);
+        scene.add(rain);
+        function rainEffect() {
+            points = []; //reseting the array to fill it again wwith new points
+            if (rain.position.y <= -7000) {
+
+                scene.remove(rain);  //remove the old geometry to create new rain from the sky
+                for (let i = 0; i < rainCount; i++) {
+                    var rainDrop = new THREE.Vector3(
+                        Math.random() * 9000 - 4500,
+                        Math.random() * 10000,
+                        Math.random() * 9000 - 4500
+                    );
+                    points.push(rainDrop);  //adding the vertices positions to the array
+                }
+                rainGeo = new THREE.BufferGeometry().setFromPoints(points); //creating a custom geometry using an array of points/vertices
+                rain = new THREE.Points(rainGeo, rainMaterial);
+                rain.castShadow = true;
+                scene.add(rain);
+            }
+            rainGeo.verticesNeedUpdate = true; //updates the vertices properties of the geometry
+            rain.rotation.y += 0.002;
+            rain.position.y -= 30;
+            renderer.render(scene, camera);
+            requestAnimationFrame(rainEffect);
+        }
+
+        function rainSound() {
+            const listener = new THREE.AudioListener(); //it's a child of the camera, we add it to the camera so that we can hear the sound that the listener plays
+            camera.add(listener);
+
+            // create a global audio source
+            const sound = new THREE.Audio(listener); //decides the properties of the audio
+
+            // load a sound and set it as the Audio object's buffer
+            const audioLoader = new THREE.AudioLoader(); //audio loader fetches the audio file
+            audioLoader.load('rain3.mp3', function (buffer) {
+                sound.setBuffer(buffer); //buffer basically holds the audio file and gives it to the Audio() object to play/pause etc
+                sound.setLoop(true);
+                sound.setVolume(0.3);
+                sound.play();
+            }, function (xhr) {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+
+                // onError callback
+                function (err) {
+                    console.log('error');
+                });
+
+        }
+
+
+        //-----------------------------------------------------MOUSE MOVE---------------------------------------------------------------------
+
+        var cwidth = (mycanvas.offsetLeft + mycanvas.width) / 2;
+        var cheight = (mycanvas.height + mycanvas.offsetTop) / 2;
+
+        var oldmouse = [0, 0]; //old x and y of the mouse
+        var newmouse = [0, 0]; //new x and y of the mouse
+
+        document.onmousemove = function (e) {
+            //console.log("mouse moved");
+            if (!gameover && !win) {
+
+                //get the position of the mouse according to the canvas
+                newmouse.x = (e.clientX - cwidth);
+                newmouse.y = -(e.clientY - cheight);
+
+                if (newmouse.x - oldmouse.x >= 1) { //right
+                    //if (newmouse.x <= 250) {
+                    group.rotation.y += -0.05;
+                    //}
+                }
+                else if (newmouse.x - oldmouse.x <= -1) { //left
+                    //if (newmouse.x >= -250) {
+                    group.rotation.y += 0.05;
+                    //}
+                }
+
+                oldmouse.x = newmouse.x;
+                oldmouse.y = newmouse.y;
+            }
+        }
+
+        //-----------------------------------------------------WIN AUDIO---------------------------------------------------------------------
+
+        function gamewon() {
+            const winlistener = new THREE.AudioListener(); //it's a child of the camera, we add it to the camera so that we can hear the sound that the listener plays
+            camera.add(winlistener);
+
+            // create a global audio source
+            const winsound = new THREE.Audio(winlistener); //decides the properties of the audio
+            const winaudioLoader = new THREE.AudioLoader(); //audio loader fetches the audio file
+            // load a sound and set it as the Audio object's buffer
+
+            winaudioLoader.load('horn.mp3', function (buffer) {
+                winsound.setBuffer(buffer); //buffer basically holds the audio file and gives it to the Audio() object to play/pause etc
+                winsound.setLoop(false);
+                winsound.setVolume(0.5);
+                winsound.play();
+            }, function (xhr) {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+                // onError callback
+                function (err) {
+                    console.log('error');
+                }
+            );
+        }
+
+
+        //-----------------------------------------------------MOVEMENT---------------------------------------------------------------------
+
+        var hits = 0;
+
+        function updateCameraPosition() {
+            if (win || gameover) {
+                return;
+            }
+            var collision = false;
+            var modelCollision = false;
+            var right = false, left = false, up = false, down = false;
+            //we add Math.PI / 2 so that instead of going left/right we go forward/backward aka rotating 90 degrees
+            vertXdistance = -Math.cos(group.rotation.y + Math.PI / 2) * playerspeed;
+            vertZdistance = Math.sin(group.rotation.y + Math.PI / 2) * playerspeed;
+            //move the camera at angle on the x and z axis according to the camera rotation * playerspeed which decides the distance travelled every button press
+            hozXdistance = Math.cos(group.rotation.y) * playerspeed;
+            hozZdistance = - Math.sin(group.rotation.y) * playerspeed;
+
+            //the position of the player compared to the edge of the floor and talking into account the amount of distance travelled by the player
+            var upCondition = group.position.z > floorPlane.position.z - (depth / 2 - vertZdistance - 80) && group.position.x > floorPlane.position.x - (width / 2 - vertXdistance - 80);
+            var downCondition = group.position.z < floorPlane.position.z + (depth / 2 - vertZdistance - 80) && group.position.x < floorPlane.position.x + (width / 2 - vertXdistance - 80);
+            var leftCondition = group.position.x > floorPlane.position.x - (width / 2 - hozXdistance - 80) && group.position.z > floorPlane.position.z - (depth / 2 - hozZdistance - 80);
+            var rightCondition = group.position.x < floorPlane.position.x + (width / 2 - hozXdistance - 80) && group.position.z < floorPlane.position.z + (depth / 2 - hozZdistance - 80);
+
+            if (upCondition && downCondition && leftCondition && rightCondition) {
+                if (keypressed[0]) { //arrow up
+                    group.position.x -= vertXdistance;
+                    group.position.z -= vertZdistance;
+
+                    //hitBox
+                    hitbox.position.x -= vertXdistance;
+                    hitbox.position.z -= vertZdistance;
+                    playerBB = new THREE.Box3().setFromObject(hitbox);
+
+                    up = true;
+                }
+                if (keypressed[1]) { //arrow down
+                    group.position.x += vertXdistance;
+                    group.position.z += vertZdistance;
+
+                    //hitBox
+                    hitbox.position.x += vertXdistance;
+                    hitbox.position.z += vertZdistance;
+                    playerBB = new THREE.Box3().setFromObject(hitbox);
+
+                    down = true;
+                }
+                if (keypressed[2]) { //arrow left
+                    group.position.x -= hozXdistance;
+                    group.position.z -= hozZdistance;
+
+                    //hitBox
+                    hitbox.position.x -= hozXdistance;
+                    hitbox.position.z -= hozZdistance;
+                    playerBB = new THREE.Box3().setFromObject(hitbox);
+
+                    left = true;
+                }
+                if (keypressed[3]) { //arrow right
+                    group.position.x += hozXdistance;
+                    group.position.z += hozZdistance;
+
+                    //hitBox
+                    hitbox.position.x += hozXdistance;
+                    hitbox.position.z += hozZdistance;
+                    playerBB = new THREE.Box3().setFromObject(hitbox);
+
+                    right = true;
+                }
+            }
+            //collision with walls
+            for (var i = 1; i < 51; i++) {
+                collision = playerBB.intersectsBox(wallsBB[i]);
+                if (collision) {
+                    break;
+                }
+            }
+            //collision with models
+            for (var j = 0; j < 5; j++) {
+                if (!allLoaded) {
+                    break;
+                }
+                modelCollision = enemiesBB[j].containsPoint(group.position);
+                if (modelCollision) {
+                    console.log("HIT");
+                    hits++;
+                    if (hits == 10) {
+                        gameover = true;
+                    }
+                }
+            }
+            if (upCondition && downCondition && leftCondition && rightCondition && collision) {
+
+
+                if (up)//UP
+                {
+                    group.position.x += (vertXdistance);
+                    group.position.z += (vertZdistance);
+
+                    //hitBox
+                    hitbox.position.x += (vertXdistance);
+                    hitbox.position.z += (vertZdistance);
+                    playerBB = new THREE.Box3().setFromObject(hitbox);
+                }
+
+                if (down)//Down
+                {
+                    group.position.x -= (vertXdistance);
+                    group.position.z -= (vertZdistance);
+
+                    //hitBox
+                    hitbox.position.x -= (vertXdistance);
+                    hitbox.position.z -= (vertZdistance);
+                    playerBB = new THREE.Box3().setFromObject(hitbox);
+                }
+
+
+                if (left)//left
+                {
+                    group.position.x += (hozXdistance);
+                    group.position.z += (hozZdistance);
+
+                    //hitBox
+                    hitbox.position.x += (hozXdistance);
+                    hitbox.position.z += (hozZdistance);
+                    playerBB = new THREE.Box3().setFromObject(hitbox);
+                }
+
+                if (right)//RIGHT
+                {
+                    group.position.x -= (hozXdistance);
+                    group.position.z -= (hozZdistance);
+
+                    //hitBox
+                    hitbox.position.x -= (hozXdistance);
+                    hitbox.position.z -= (hozZdistance);
+                    playerBB = new THREE.Box3().setFromObject(hitbox);
+                }
+
+            }
+
+            //win position
+            if (group.position.x <= -2500 && group.position.z <= -2800) {
+                win = true;
+                gameover = true;
+                gamewon();
+            }
+        }
+
+        function updateMixers(delta) {
+            if (mixer) mixer.update(delta);
+            if (mixer2) mixer2.update(delta);
+            if (mixer3) mixer3.update(delta); //update the animation of all the models
+            if (mixer4) mixer4.update(delta);
+            if (mixer5) mixer5.update(delta);
+            if (playerMixer) playerMixer.update(delta);
+        }
+
+        function gameoverScreen() {
+            while (scene.children.length > 0) {
+                scene.remove(scene.children[0]); //clear the scene
+            }
+            scene.add(camera); //add the camera to the scene again
+            camera.position.set(0, 0, 0);
+            scene.background = new THREE.Color(0x000000);
+            var geo = new THREE.PlaneGeometry(800, 500); //the plane that holds the texture/image of the win/gamover screen
+            var gameovertexture;
+            var gameovertextloader = new THREE.TextureLoader();
+            if (win) {
+                gameovertexture = gameovertextloader.load("win.png");
+            }
+            else {
+                gameovertexture = gameovertextloader.load("gameover.png");
+            }
+            var mat = new THREE.MeshBasicMaterial({ map: gameovertexture });
+            var gm = new THREE.Mesh(geo, mat);
+
+            gm.position.set(0, 0, -500);
+            scene.add(gm)
+            renderer.render(scene, camera);
+            //requestAnimationFrame(gameoverScreen);
+        }
+
+        function enemyGunShot() {
+            const gunlistener = new THREE.AudioListener(); //it's a child of the camera, we add it to the camera so that we can hear the sound that the listener plays
+            camera.add(gunlistener);
+
+            // create a global audio source
+            const gunsound = new THREE.Audio(gunlistener); //decides the properties of the audio
+
+            // load a sound and set it as the Audio object's buffer
+            const gunaudioLoader = new THREE.AudioLoader(); //audio loader fetches the audio file
+            gunaudioLoader.load('pistol.mp3', function (buffer) {
+                gunsound.setBuffer(buffer); //buffer basically holds the audio file and gives it to the Audio() object to play/pause etc
+                gunsound.setLoop(false);
+                gunsound.setVolume(0.5);
+                gunsound.play();
+            }, function (xhr) {
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+                // onError callback
+                function (err) {
+                    console.log('error');
+                }
+            );
+        }
+
+        let AIdetection = false;
+
+        async function shooting() {
+            if (!AIdetection) {
+                return;
+            }
+            if (!gameover) {
+                let hitChance = parseInt(Math.random() * 10); //a 1 in 10 chance of the enemy hitting you
+                console.log(hitChance);
+                enemyGunShot();
+                if (hitChance == 9) {
+                    console.log("dead"); //if the enemy hits you, you lose
+                    gameover = true;
+                    return;
+                }
+                await new Promise(r => setTimeout(r, 2000));
+                requestAnimationFrame(shooting);
+            }
+        }
+        async function detectEnemyCollision() {
+            AIdetection = false;
+            if (gameover || win) {
+                return;
+            }
+            for (var i = 0; i < 5; i++) {
+                if (!allLoaded) { //checks if the all the models have loaded properly including the player model
+                    break;
+                }
+                AIdetection = AiCollisionDetection[i].containsPoint(group.position); //checks if the center of the player is in the range of the enemy
+                if (AIdetection) {
+                    console.log("I found you");
+                    shooting();
+                    await new Promise(r => setTimeout(r, 900));
+                }
+                else {
+                    //console.log("Where are you");
+                    AIdetection = false;
+                }
+            }
+            requestAnimationFrame(detectEnemyCollision);
+        }
+
+
+        function animate() {
+            var delta = clock.getDelta(); //returns the amount of seconds that has passed since the last time it was called 
+            updateMixers(delta);
+            updateCameraPosition();
+            camera.updateProjectionMatrix();
+            renderer.render(scene, camera);
+            if (!gameover) {
+                requestAnimationFrame(animate);
+            }
+            else {
+                console.log("gg");
+                gameoverScreen();
+            }
+        }
+
+        animate();
+        rainEffect();
+        detectEnemyCollision();
+
+    </script>
+</body>
+
+</html>
